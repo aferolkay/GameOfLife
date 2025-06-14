@@ -1,5 +1,6 @@
 #include "Life3d.h"
 #include "Life.h"
+#include "Life.cuh"
 
 #include <ctime>
 

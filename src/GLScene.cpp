@@ -4,6 +4,7 @@ int size = 500;
 
 Life3d * life3d = new Life3d(size / 5, size / 5, size / 5);
 Life * life = new Life(size, size);
+LifeCuda * lifeCuda = new LifeCuda(size, size);
 
 int window_width;
 int window_height;
@@ -20,6 +21,7 @@ float rot_angle = 0.1f;
 bool b_rot = true;
 bool sim = true;
 bool shade = false;
+bool _gpu = true;
 int time_e = clock();
 
 Scene g_current = scene1;
@@ -114,7 +116,7 @@ void DisplayGL()
 	if (g_current == 0)
 	{
 		render();
-	}else 
+	}else
 	if (g_current == 1)
 	{
 		render3d();
@@ -164,7 +166,7 @@ void KeyboardGL(unsigned char c, int x, int y)
 	{
 		x_offset -= 0.1;
 	}
-	
+
 	if (c == 'a')
 	{
 		x_offset += 0.1;
@@ -325,7 +327,7 @@ void render()
 	{
 		life->update();
 	}
-	
+
 }
 
 void render3d()
@@ -338,7 +340,7 @@ void render3d()
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
-		
+
 		if (shade == false)
 		{
 			GLfloat green[] = { (169.0f / 255.0f), (234.0f / 255.0f), (123.0f / 255.0f), 1.f };
@@ -352,7 +354,7 @@ void render3d()
 		glRotatef(rot_angle/3, rot_z, rot_y, rot_x);
 		glRotatef(rot_angle/3, rot_x, rot_z, rot_y);
 		glTranslatef(-2.0f, -2.0f, -2.0f);
-		
+
 		glBegin(GL_QUADS);
 		float sz = 2.0f * 5.0f / size;
 		for (int i = 0; i < size / 5; i++)
