@@ -8,22 +8,6 @@
 
 LifeCuda::LifeCuda(int w, int h) : width(w), height(h), _grid(w * h, false)
 {
-    cudaSetDevice(0);
-    cudaDeviceProp prop;
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    std::cout << "Available CUDA devices: " << deviceCount << std::endl;
-
-    for (int i = 0; i < deviceCount; ++i)
-    {
-        cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, i);
-        std::cout << "Device " << i << ": " << deviceProp.name
-                  << " | CC " << deviceProp.major << "." << deviceProp.minor
-                  << " | Global Memory: " << deviceProp.totalGlobalMem / (1024 * 1024) << " MB"
-                  << std::endl;
-    }
-
     size_t mapSize = (width + 2) * (height+ 2) * sizeof(uint8_t);
     cudaError_t err;
 
@@ -52,10 +36,6 @@ LifeCuda::LifeCuda(int w, int h) : width(w), height(h), _grid(w * h, false)
 
     cudaMemset(d_currentGrid, 0, mapSize);
     cudaMemset(d_nextGrid, 0, mapSize);
-
-    cudaGetDeviceProperties(&prop, 0);
-    std::cout << "Max threads per block: " << prop.maxThreadsPerBlock << std::endl;
-    std::cout << "Max grid dimensions: " << prop.maxGridSize[0] << " x " << prop.maxGridSize[1] << " x " << prop.maxGridSize[2] << std::endl;
 
     _grid.resize((width + 2) * (height + 2), 0);
 }
@@ -103,68 +83,21 @@ void LifeCuda::update()
     int gridHeight = height + 2;
     dim3 blockSize(16, 16);
     dim3 gridSize((gridWidth + blockSize.x - 1) / blockSize.x, (gridHeight + blockSize.y - 1) / blockSize.y);
-    uint8_t *tempGrid = nullptr;
 
-    sleep (1);
-
-    std::cout << "Grid size: " << gridSize.x << "x" << gridSize.y << std::endl;
-
-    tempGrid = (uint8_t *)malloc(gridWidth * gridHeight * sizeof(uint8_t));
-    if (!tempGrid)
-    {
-        std::cerr << "Failed to allocate memory for tempGrid." << std::endl;
-        return;
-    }
-
-    memset(tempGrid, 0, gridWidth * gridHeight * sizeof(uint8_t));
-
-    //updateKernel<<<gridSize, blockSize>>>(d_currentGrid, d_nextGrid, gridWidth, gridHeight);
-    if (d_currentGrid == nullptr || d_nextGrid == nullptr)
-    {
-        std::cerr << "Device grids are not allocated." << std::endl;
-        free(tempGrid);
-        return;
-    }
-
-    std::cout << "Launching kernel with grid size: " << gridSize.x << "x" << gridSize.y << " and block size: " << blockSize.x << "x" << blockSize.y << std::endl;
-    std::cout << "Grid width: " << gridWidth << ", Grid height: " << gridHeight << std::endl;
-
-    // dummyKernel<<<gridSize, blockSize>>>(d_currentGrid, gridWidth, gridHeight);
-    launchDummyKernel(
-        d_currentGrid, gridWidth, gridHeight,
-        gridSize.x, gridSize.y, blockSize.x, blockSize.y);
-
+    launchUpdateKernel(d_currentGrid, d_nextGrid, gridWidth, gridHeight, gridSize.x, gridSize.y, blockSize.x, blockSize.y);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess)
     {
-        free(tempGrid);
         std::cerr << "CUDA kernel launch error: " << cudaGetErrorString(err) << std::endl;
         return;
     }
 
-    cudaMemcpy(tempGrid, d_currentGrid, gridWidth * gridHeight * sizeof(uint8_t), cudaMemcpyDeviceToHost);
-
-    std::copy(tempGrid, tempGrid + (gridWidth * gridHeight), _grid.begin());
-
-    free(tempGrid);
-
-    return;
-
-    /********************************************************************* */
-    /********************************************************************* */
-
-    // Copy the updated grid back to the host
-    cudaMemcpy(_grid.data(), d_nextGrid, gridWidth * gridHeight * sizeof(uint8_t), cudaMemcpyDeviceToHost);
-
+    cudaMemcpy(_grid.data() , d_currentGrid, gridWidth * gridHeight * sizeof(uint8_t), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
 
-    std::cout << "Number of live cells: " << numberOfOnes(_grid) << std::endl;
-
-    // Swap the grids
     std::swap(d_currentGrid, d_nextGrid);
-    std::cout << "Grid updated." << std::endl;
 
-    sleep(1); // Sleep for 1 second to simulate time delay
+    return;
 }
 
 uint8_t LifeCuda::getLifeform(int x, int y)

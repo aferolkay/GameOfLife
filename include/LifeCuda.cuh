@@ -14,3 +14,10 @@ extern "C" void launchDummyKernel(
     int width, int height,
     int gridX, int gridY,
     int blockX, int blockY);
+
+extern "C" void launchUpdateKernel(
+    uint8_t* currentGrid,
+    uint8_t* nextGrid,
+    int width, int height,
+    int gridX, int gridY,
+    int blockX, int blockY);

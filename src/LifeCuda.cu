@@ -50,8 +50,6 @@ extern "C" __global__ void updateKernel(uint8_t *currentGrid, uint8_t *nextGrid,
     {
         int neighbors = countNeighbors(currentGrid, x, y, width, height);
 
-        nextGrid[idx] = idx % 2;
-        /*
         if (currentGrid[idx])
         {
             nextGrid[idx] = (neighbors == 2 || neighbors == 3);
@@ -60,7 +58,6 @@ extern "C" __global__ void updateKernel(uint8_t *currentGrid, uint8_t *nextGrid,
         {
             nextGrid[idx] = (neighbors == 3);
         }
-        */
     }
 }
 
@@ -85,5 +82,18 @@ extern "C" void launchDummyKernel(
   dim3 gridSize (gridX, gridY);
   dim3 blockSize(blockX, blockY);
   dummyKernel<<<gridSize, blockSize>>>(grid, width, height);
+  cudaDeviceSynchronize();
+}
+
+extern "C" void launchUpdateKernel(
+    uint8_t* currentGrid,
+    uint8_t* nextGrid,
+    int width, int height,
+    int gridX, int gridY,
+    int blockX, int blockY)
+{
+  dim3 gridSize (gridX, gridY);
+  dim3 blockSize(blockX, blockY);
+  updateKernel<<<gridSize, blockSize>>>(currentGrid, nextGrid, width, height);
   cudaDeviceSynchronize();
 }

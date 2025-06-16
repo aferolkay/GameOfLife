@@ -1,6 +1,6 @@
 #include "GLScene.h"
 
-int size = 20;
+int size = 600;
 
 Life3d * life3d = new Life3d(size / 5, size / 5, size / 5);
 Life * life = new Life(size, size);
@@ -223,6 +223,7 @@ void KeyboardGL(unsigned char c, int x, int y)
 		size = 200;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 
 	if (c == '2')
@@ -230,72 +231,85 @@ void KeyboardGL(unsigned char c, int x, int y)
 		size = 200;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 	if (c == '3')
 	{
 		size = 300;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 	if (c == '4')
 	{
 		size = 400;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 	if (c == '5')
 	{
 		size = 500;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 	if (c == '6')
 	{
 		size = 600;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 	if (c == '7')
 	{
 		size = 700;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 	if (c == '8')
 	{
 		size = 800;
 		newLife();
 		newlife3d();
+		newLifeCuda();
 	}
 	if (c == '9')
 	{
 		size = 900;
 		newLife();
+		newLifeCuda();
 	}
 	if (c == '!')
 	{
 		size = 1000;
 		newLife();
+		newLifeCuda();
 	}
 	if (c == '@')
 	{
 		size = 2000;
 		newLife();
+		newLifeCuda();
 	}
 	if (c == '#')
 	{
 		size = 3000;
 		newLife();
+		newLifeCuda();
 	}
 	if (c == '$')
 	{
 		size = 4000;
 		newLife();
+		newLifeCuda();
 	}
 	if (c == '%')
 	{
 		size = 5000;
 		newLife();
+		newLifeCuda();
 	}
 }
 
