@@ -1,6 +1,6 @@
 #include "Life3d.h"
 #include "Life.h"
-#include "Life.cuh"
+#include "LifeCuda.h"
 
 #include <ctime>
 
@@ -23,6 +23,7 @@ void Cleanup();
 
 void newLife();
 void newlife3d();
+void newLifeCuda();
 
 void DisplayGL();
 void KeyboardGL(unsigned char c, int x, int y);
@@ -30,4 +31,5 @@ void ReshapeGL(int w, int h);
 
 void render();
 void render3d();
+void renderCuda();
 #endif

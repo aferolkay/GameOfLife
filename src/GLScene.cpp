@@ -1,6 +1,6 @@
 #include "GLScene.h"
 
-int size = 500;
+int size = 20;
 
 Life3d * life3d = new Life3d(size / 5, size / 5, size / 5);
 Life * life = new Life(size, size);
@@ -33,13 +33,20 @@ void GLScene(int argc, char*argv[])
 
 void GLScene(int x, int y, int argc, char*argv[])
 {
+	/*
 	for (int i = 0; i < 100000; i++)
 	{
 		int x = rand() % size + 1;
 		int y = rand() % size + 1;
 		life->setLife(x, y, 1);
 	}
+	*/
+	newLife();
 	newlife3d();
+	newLifeCuda();
+
+	std::cout << "GLScene( " << x << ", " << y << ", " << argc << ", argv );" << std::endl;
+
 	cout << glutGet(GLUT_ELAPSED_TIME) << endl;
 	window_height = y;
 	window_width = x;
@@ -110,12 +117,39 @@ void newlife3d()
 	}
 }
 
+void newLifeCuda()
+{
+	delete lifeCuda;
+	std::cout << "old lifeCuda deleted" << std::endl;
+	lifeCuda = new LifeCuda(size, size);
+
+	std::cout << "new lifeCuda created" << std::endl;
+
+
+	std::vector<uint8_t> initialState(size * size, 0);
+	for (int i = 0; i < .6*size*size; i++)
+	{
+		int x = rand() % size;
+		int y = rand() % size;
+		initialState[y * size + x] = 1; // Set life at (x, y)
+	}
+	std::cout << "initialState created" << std::endl;
+	lifeCuda->setInitialState(initialState);
+	std::cout << "initialState set in lifeCuda" << std::endl;
+}
+
 void DisplayGL()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if (g_current == 0)
 	{
-		render();
+		if (_gpu)
+		{
+			renderCuda();
+		} else
+		{
+			render();
+		}
 	}else
 	if (g_current == 1)
 	{
@@ -328,6 +362,47 @@ void render()
 		life->update();
 	}
 
+}
+
+void renderCuda()
+{
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	float y_t = 0.0f;
+	float x_t = 0.0f;
+	float off = 500 / (float)size * 0.01f;
+
+	//glScalef(1.0f+scal, 1.0f+scal, 1.0f+scal);
+	glTranslatef(-5.0f + x_offset, -5.0f + y_offset, -9.0f + scal);
+	//glTranslatef(-0.5f, -0.5f, 0.0f);
+	if (shade == false) glColor3f((169.0f / 255.0f), (234.0f / 255.0f), (123.0f / 255.0f));
+	//GLfloat cyan[] = { (169.0f / 255.0f), (234.0f / 255.0f), (123.0f / 255.0f), 1.f };
+	//glMaterialfv(GL_FRONT, GL_DIFFUSE, cyan);
+	glBegin(GL_QUADS);
+	for (int i = 0; i < size; i++)
+	{
+		x_t = 0.0f;
+		for (int j = 0; j < size; j++)
+		{
+			if (lifeCuda->getLifeform(j + 1, i + 1) == 1)
+			{
+				if (shade == true) glColor3f(((float)i / (float)size), ((float)j / (float)size), 1.0f);
+				glVertex2f(x_t - off, y_t + off);
+				glVertex2f(x_t + off, y_t + off);
+				glVertex2d(x_t + off, y_t - off);
+				glVertex2d(x_t - off, y_t - off);
+			}
+
+			x_t += (500 / (float)size) * 0.02f;
+		}
+		y_t += (500 / (float)size) * 0.02f;
+	}
+	glEnd();
+	glPopMatrix();
+	if (sim == true)
+	{
+		lifeCuda->update();
+	}
 }
 
 void render3d()
