@@ -34,6 +34,9 @@ set(CMAKE_CUDA_SEPARABLE_COMPILATION OFF)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(GLU REQUIRED)
+find_package(CUDA REQUIRED)
+find_package(CUDAToolkit REQUIRED)
+
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include
@@ -55,7 +58,9 @@ add_executable(Conway
 )
 
 target_link_libraries(Conway PRIVATE
+  CUDA::cudart
   OpenGL::OpenGL
   GLUT::GLUT
   GLU
+  dl
 )
