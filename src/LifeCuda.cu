@@ -45,7 +45,7 @@ extern "C" __global__ void updateKernelBasic(uint8_t *currentGrid, uint8_t *next
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int idx = y * width + x;
 
-    if (x < width && y < height && x > 0 && y > 0)
+    if (x < (width - 1) && y < (height - 1) && x > 0 && y > 0)
     {
         int neighbors = countNeighbors(currentGrid, x, y, width, height);
 
@@ -72,46 +72,61 @@ extern "C" __global__ void updateKernelShared(uint8_t *currentGrid, uint8_t *nex
     int localY = threadIdx.y + 1; // +1 for halo
     int sharedWidth = blockDim.x + 2; // +2 for halo
 
-    // Load the current cell and its neighbors into shared memory
     if (x < width && y < height)
     {
-        sharedGrid[localY * sharedWidth + localX] = currentGrid[idx];
+        sharedGrid[localY * sharedWidth + localX] = currentGrid[idx]; // every thread loads its own cell
 
         // Load halo cells
         if (threadIdx.x == 0 && x > 0)
-            sharedGrid[localY * sharedWidth] = currentGrid[idx - 1];
+        {
+            sharedGrid[localY * sharedWidth] = currentGrid[idx - 1]; // left halo
+        }
         if (threadIdx.x == blockDim.x - 1 && x < width - 1)
-            sharedGrid[localY * sharedWidth + localX + 1] = currentGrid[idx + 1];
+        {
+            sharedGrid[localY * sharedWidth + localX + 1] = currentGrid[idx + 1]; // right halo
+        }
         if (threadIdx.y == 0 && y > 0)
-            sharedGrid[(localY - 1) * sharedWidth + localX] = currentGrid[idx - width];
+        {
+            sharedGrid[(localY - 1) * sharedWidth + localX] = currentGrid[idx - width]; // top halo
+        }
         if (threadIdx.y == blockDim.y - 1 && y < height - 1)
-            sharedGrid[(localY + 1) * sharedWidth + localX] = currentGrid[idx + width];
-
+        {
+            sharedGrid[(localY + 1) * sharedWidth + localX] = currentGrid[idx + width]; // bottom halo
+        }
         // Load corner halo cells
         if (threadIdx.x == 0 && threadIdx.y == 0 && x > 0 && y > 0)
-            sharedGrid[(localY - 1) * sharedWidth] = currentGrid[idx - width - 1];
+        {
+            sharedGrid[(localY - 1) * sharedWidth] = currentGrid[idx - width - 1]; // top left halo
+        }
         if (threadIdx.x == blockDim.x - 1 && threadIdx.y == 0 && x < width - 1 && y > 0)
-            sharedGrid[(localY - 1) * sharedWidth + localX + 1] = currentGrid[idx - width + 1];
+        {
+            sharedGrid[(localY - 1) * sharedWidth + localX + 1] = currentGrid[idx - width + 1]; // top right halo
+        }
         if (threadIdx.x == 0 && threadIdx.y == blockDim.y - 1 && x > 0 && y < height - 1)
-            sharedGrid[(localY + 1) * sharedWidth] = currentGrid[idx + width - 1];
+        {
+            sharedGrid[(localY + 1) * sharedWidth] = currentGrid[idx + width - 1]; // bottom left halo
+        }
         if (threadIdx.x == blockDim.x - 1 && threadIdx.y == blockDim.y - 1 && x < width - 1 && y < height - 1)
-            sharedGrid[(localY + 1) * sharedWidth + localX + 1] = currentGrid[idx + width + 1];
+        {
+            sharedGrid[(localY + 1) * sharedWidth + localX + 1] = currentGrid[idx + width + 1]; // bottom right halo
+        }
     }
 
-    __syncthreads();
+    __syncthreads(); // Ensure all threads have loaded their data into shared memory
 
-    if (x < width && y < height && x > 0 && y > 0)
+    if (x < (width - 1) && y < (height - 1) && x > 0 && y > 0)
     {
         int neighbors = 0;
 
-        neighbors += sharedGrid[(localY - 1) * sharedWidth + localX];     // up
-        neighbors += sharedGrid[(localY - 1) * sharedWidth + localX + 1]; // up right
-        neighbors += sharedGrid[localY * sharedWidth + localX + 1];       // right
-        neighbors += sharedGrid[(localY + 1) * sharedWidth + localX + 1]; // down right
-        neighbors += sharedGrid[(localY + 1) * sharedWidth + localX];     // down
-        neighbors += sharedGrid[(localY + 1) * sharedWidth + localX - 1]; // down left
-        neighbors += sharedGrid[localY * sharedWidth + localX - 1];       // left
-        neighbors += sharedGrid[(localY - 1) * sharedWidth + localX - 1]; // up left
+        // Count neighbors using shared memory
+        neighbors += sharedGrid[(localY - 1) * sharedWidth + localX]; // up
+        neighbors += sharedGrid[(localY - 1) * sharedWidth + (localX + 1)]; // up right
+        neighbors += sharedGrid[localY * sharedWidth + (localX + 1)]; // right
+        neighbors += sharedGrid[(localY + 1) * sharedWidth + (localX + 1)]; // down right
+        neighbors += sharedGrid[(localY + 1) * sharedWidth + localX]; // down
+        neighbors += sharedGrid[(localY + 1) * sharedWidth + (localX - 1)]; // down left
+        neighbors += sharedGrid[localY * sharedWidth + (localX - 1)]; // left
+        neighbors += sharedGrid[(localY - 1) * sharedWidth + (localX - 1)]; // up left
 
         if (sharedGrid[localY * sharedWidth + localX])
         {
@@ -159,7 +174,7 @@ extern "C" void launchUpdateKernelShared(
 {
   dim3 gridSize (gridX, gridY);
   dim3 blockSize(blockX, blockY);
-  size_t sharedMemSize = (blockX + 2) * (blockY + 2) * sizeof(uint8_t); // +2 for halo
+  size_t sharedMemSize = (blockX + 1) * (blockY + 1) * sizeof(uint8_t);
   updateKernelShared<<<gridSize, blockSize, sharedMemSize>>>(currentGrid, nextGrid, width, height);
   cudaDeviceSynchronize();
 }
