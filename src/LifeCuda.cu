@@ -11,31 +11,16 @@
 
 extern "C" __device__ int countNeighbors(uint8_t *grid, int x, int y, int width, int height)
 {
-    /*
-    int count = 0;
-    for (int dx = -1; dx <= 1; ++dx)
-    {
-        for (int dy = -1; dy <= 1; ++dy)
-        {
-            if (dx == 0 && dy == 0) continue;
-            int nx = (x + dx + width) % width;
-            int ny = (y + dy + height) % height;
-            count += grid[ny * width + nx];
-        }
-    }
-    return count;
-    */
    int count = 0;
 
-	count += grid[(x-1) * (width) + (y)];
-	count += grid[(x) * (width) + (y-1)];
-	count += grid[(x - 1) * (width) + (y-1)];
-	count += grid[(x + 1) * (width) + (y)];
-
-	count += grid[(x) * (width) + (y+1)];
-	count += grid[(x+1) * (width) + (y+1)];
-	count += grid[(x+1) * (width) + (y-1)];
-	count += grid[(x - 1) * (width) + (y+1)];
+	count += grid[((y - 1) * width) + x]; // up
+	count += grid[((y - 1) * width) + (x + 1)]; // up right
+    count += grid[(y * width) + (x + 1)]; // right
+    count += grid[((y + 1) * width) + (x + 1)]; // down right
+    count += grid[((y + 1) * width) + x]; // down
+    count += grid[((y + 1) * width) + (x - 1)]; // down left
+    count += grid[(y * width) + (x - 1)]; // left
+    count += grid[((y - 1) * width) + (x - 1)]; // up left
 
 	return count;
 }

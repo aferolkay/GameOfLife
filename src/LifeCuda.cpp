@@ -8,7 +8,7 @@
 
 LifeCuda::LifeCuda(int w, int h) : width(w), height(h), _grid(w * h, false)
 {
-    size_t mapSize = (width + 2) * (height+ 2) * sizeof(uint8_t);
+    size_t mapSize = (width + 2) * (height+ 2) * sizeof(uint8_t); // +2 for the border cells
     cudaError_t err;
 
     err = cudaMalloc(&d_currentGrid, mapSize);
@@ -17,10 +17,6 @@ LifeCuda::LifeCuda(int w, int h) : width(w), height(h), _grid(w * h, false)
         std::cerr << "CUDA error allocating d_currentGrid: " << cudaGetErrorString(err) << std::endl;
         exit(EXIT_FAILURE);
     }
-    else
-    {
-        std::cout << "Allocated d_currentGrid of size: " << mapSize << " bytes." << std::endl;
-    }
 
     err = cudaMalloc(&d_nextGrid, mapSize);
     if (err != cudaSuccess)
@@ -28,10 +24,6 @@ LifeCuda::LifeCuda(int w, int h) : width(w), height(h), _grid(w * h, false)
         std::cerr << "CUDA error allocating d_nextGrid: " << cudaGetErrorString(err) << std::endl;
         cudaFree(d_currentGrid);
         exit(EXIT_FAILURE);
-    }
-    else
-    {
-        std::cout << "Allocated d_nextGrid of size: " << mapSize << " bytes." << std::endl;
     }
 
     cudaMemset(d_currentGrid, 0, mapSize);
@@ -43,12 +35,16 @@ LifeCuda::LifeCuda(int w, int h) : width(w), height(h), _grid(w * h, false)
 LifeCuda::~LifeCuda()
 {
     if (d_currentGrid)
+    {
         cudaFree(d_currentGrid);
+    }
     if (d_nextGrid)
+    {
         cudaFree(d_nextGrid);
+    }
 }
 
-static int numberOfOnes(const std::vector<uint8_t> &grid)
+static int numberOfOnes(const std::vector<uint8_t> &grid) // TODO: delete later
 {
     return std::count(grid.begin(), grid.end(), 1);
 }
@@ -58,7 +54,22 @@ void LifeCuda::setInitialState(std::vector<uint8_t> &initialState)
 {
     size_t mapSize = (width + 2) * (height + 2) * sizeof(uint8_t);
 
-    cudaMemcpy(d_currentGrid, initialState.data() , mapSize, cudaMemcpyHostToDevice);
+    for (int i = 0; i < width + 2; i++)
+    {
+        for (int j = 0; j < height + 2; j++)
+        {
+            if (i == 0 || i == width + 1 || j == 0 || j == height + 1)
+            {
+                _grid[j * (width + 2) + i] = 0; // Set border cells to 0
+            }
+            else
+            {
+                _grid[j * (width + 2) + i] = initialState[(j - 1) * width + (i - 1)];
+            }
+        }
+    }
+
+    cudaMemcpy(d_currentGrid, _grid.data() , mapSize, cudaMemcpyHostToDevice);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess)
     {
@@ -102,5 +113,5 @@ void LifeCuda::update()
 
 uint8_t LifeCuda::getLifeform(int x, int y)
 {
-    return _grid[y * (width + 2) + x];
+    return _grid[(y + 1) * (width + 2) + x + 1];
 }
