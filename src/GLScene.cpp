@@ -1,5 +1,6 @@
 #include "GLScene.h"
 #include "unistd.h"
+#include <deque>
 
 int size = 600;
 
@@ -30,10 +31,27 @@ Scene g_current = scene1;
 long updateIterations = 0;
 std::chrono::time_point<std::chrono::high_resolution_clock> lastUpdateTime = std::chrono::high_resolution_clock::now();
 
+const size_t maxUpdateTimes = 10;
+std::deque<double> lastUpdateTimes;
+
+void recordUpdateTime(double ms) {
+    if (lastUpdateTimes.size() == maxUpdateTimes)
+        lastUpdateTimes.pop_front();
+    lastUpdateTimes.push_back(ms);
+}
+
+double getAverageUpdateTime() {
+    if (lastUpdateTimes.empty()) return 0.0;
+    double sum = 0.0;
+    for (double t : lastUpdateTimes) sum += t;
+    return sum / lastUpdateTimes.size();
+}
+
 static void resetCounters()
 {
 	updateIterations = 0;
 	lastUpdateTime = std::chrono::high_resolution_clock::now();
+	lastUpdateTimes.clear();
 	std::cout << "Counter reset." << std::endl;
 }
 
@@ -44,6 +62,7 @@ static void printStatistics()
 	double fps = updateIterations > 0 ? 1000.0 / (duration / updateIterations) : 0.0;
 
 	std::cout << "Update iterations: " << updateIterations << ", FPS: " << fps << std::endl;
+	std::cout << "Average update time: " << getAverageUpdateTime() << " ms" << std::endl;
 }
 
 static void incrementUpdateIterations()
@@ -201,6 +220,12 @@ void KeyboardGL(unsigned char c, int x, int y)
 			std::cout << "Using CPU" << std::endl;
 		}
 
+		resetCounters();
+	}
+
+	if (c == 'k')
+	{
+		lifeCuda->alterKernelType();
 		resetCounters();
 	}
 
@@ -429,7 +454,11 @@ void render()
 	glPopMatrix();
 	if (sim == true)
 	{
+		auto start = std::chrono::high_resolution_clock::now();
 		life->update();
+		auto end = std::chrono::high_resolution_clock::now();
+		double ms = std::chrono::duration<double, std::milli>(end - start).count();
+		recordUpdateTime(ms);
 		incrementUpdateIterations();
 	}
 
@@ -472,7 +501,11 @@ void renderCuda()
 	glPopMatrix();
 	if (sim == true)
 	{
+		auto start = std::chrono::high_resolution_clock::now();
 		lifeCuda->update();
+		auto end = std::chrono::high_resolution_clock::now();
+		double ms = std::chrono::duration<double, std::milli>(end - start).count();
+		recordUpdateTime(ms);
 		incrementUpdateIterations();
 	}
 }
@@ -557,7 +590,13 @@ void render3d()
 			if ((int)(clock() - time_e) > 100 )
 			{
 				time_e = clock();
+
+				auto start = std::chrono::high_resolution_clock::now();
 				life3d->update();
+				auto end = std::chrono::high_resolution_clock::now();
+				double ms = std::chrono::duration<double, std::milli>(end - start).count();
+				recordUpdateTime(ms);
+
 				incrementUpdateIterations();
 			}
 		}
