@@ -3,6 +3,7 @@
 #include "LifeCuda.h"
 
 #include <ctime>
+#include <chrono>
 
 #include <GL/glut.h>
 

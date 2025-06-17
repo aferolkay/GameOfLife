@@ -1,4 +1,5 @@
 #include "GLScene.h"
+#include "unistd.h"
 
 int size = 600;
 
@@ -25,6 +26,30 @@ bool _gpu = true;
 int time_e = clock();
 
 Scene g_current = scene1;
+
+long updateIterations = 0;
+std::chrono::time_point<std::chrono::high_resolution_clock> lastUpdateTime = std::chrono::high_resolution_clock::now();
+
+static void resetCounters()
+{
+	updateIterations = 0;
+	lastUpdateTime = std::chrono::high_resolution_clock::now();
+	std::cout << "Counter reset." << std::endl;
+}
+
+static void printStatistics()
+{
+	auto now = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdateTime).count();
+	double fps = updateIterations > 0 ? 1000.0 / (duration / updateIterations) : 0.0;
+
+	std::cout << "Update iterations: " << updateIterations << ", FPS: " << fps << std::endl;
+}
+
+static void incrementUpdateIterations()
+{
+	updateIterations++;
+}
 
 void GLScene(int argc, char*argv[])
 {
@@ -101,6 +126,8 @@ void newLife()
 		int y = rand() % size + 1;
 		life->setLife(x, y, 1);
 	}
+
+	resetCounters();
 }
 
 void newlife3d()
@@ -115,16 +142,15 @@ void newlife3d()
 		int z = rand() % size / 5 + 1;
 		life3d->setLife(x, y, z, 1);
 	}
+
+	resetCounters();
 }
 
 void newLifeCuda()
 {
 	delete lifeCuda;
-	std::cout << "old lifeCuda deleted" << std::endl;
+
 	lifeCuda = new LifeCuda(size, size);
-
-	std::cout << "new lifeCuda created" << std::endl;
-
 
 	std::vector<uint8_t> initialState(size * size, 0);
 	for (int i = 0; i < .6*size*size; i++)
@@ -133,9 +159,9 @@ void newLifeCuda()
 		int y = rand() % size;
 		initialState[y * size + x] = 1; // Set life at (x, y)
 	}
-	std::cout << "initialState created" << std::endl;
 	lifeCuda->setInitialState(initialState);
-	std::cout << "initialState set in lifeCuda" << std::endl;
+
+	resetCounters();
 }
 
 void DisplayGL()
@@ -146,21 +172,49 @@ void DisplayGL()
 		if (_gpu)
 		{
 			renderCuda();
-		} else
+		}
+		else
 		{
 			render();
 		}
-	}else
-	if (g_current == 1)
+	}
+	else if (g_current == 1)
 	{
 		render3d();
 	}
+
 	glutSwapBuffers();
 	glutPostRedisplay();
 }
 
 void KeyboardGL(unsigned char c, int x, int y)
 {
+	if (c == 'g')
+	{
+		_gpu = !_gpu;
+		if (_gpu)
+		{
+			std::cout << "Using GPU" << std::endl;
+		}
+		else
+		{
+			std::cout << "Using CPU" << std::endl;
+		}
+
+		resetCounters();
+	}
+
+	if (c == 27) // Escape key
+	{
+		Cleanup();
+		exit(0);
+	}
+
+	if (c == 'i')
+	{
+		printStatistics();
+	}
+
 	if (c == ' ')
 	{
 		sim = !sim;
@@ -185,6 +239,8 @@ void KeyboardGL(unsigned char c, int x, int y)
 			glDisable(GL_LIGHT0);
 			g_current = scene1;
 		}
+
+		resetCounters();
 	}
 	if (c == 'w')
 	{
@@ -374,6 +430,7 @@ void render()
 	if (sim == true)
 	{
 		life->update();
+		incrementUpdateIterations();
 	}
 
 }
@@ -398,7 +455,7 @@ void renderCuda()
 		x_t = 0.0f;
 		for (int j = 0; j < size; j++)
 		{
-			if (lifeCuda->getLifeform(j + 1, i + 1) == 1)
+			if (lifeCuda->getLifeform(j, i) == 1)
 			{
 				if (shade == true) glColor3f(((float)i / (float)size), ((float)j / (float)size), 1.0f);
 				glVertex2f(x_t - off, y_t + off);
@@ -416,6 +473,7 @@ void renderCuda()
 	if (sim == true)
 	{
 		lifeCuda->update();
+		incrementUpdateIterations();
 	}
 }
 
@@ -500,6 +558,7 @@ void render3d()
 			{
 				time_e = clock();
 				life3d->update();
+				incrementUpdateIterations();
 			}
 		}
 
