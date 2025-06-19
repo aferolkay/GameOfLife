@@ -44,11 +44,6 @@ LifeCuda::~LifeCuda()
     }
 }
 
-static int numberOfOnes(const std::vector<uint8_t> &grid) // TODO: delete later
-{
-    return std::count(grid.begin(), grid.end(), 1);
-}
-
 // Set initial state
 void LifeCuda::setInitialState(std::vector<uint8_t> &initialState)
 {
@@ -83,7 +78,6 @@ void LifeCuda::setInitialState(std::vector<uint8_t> &initialState)
         std::cerr << "CUDA error: " << cudaGetErrorString(err) << std::endl;
     }
 
-    std::cout << "Initial state set. Total active cells: " << numberOfOnes(initialState) << std::endl;
 }
 
 
