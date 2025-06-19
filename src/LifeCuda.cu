@@ -157,12 +157,27 @@ extern "C" void launchUpdateKernelBasic(
     uint8_t* nextGrid,
     int width, int height,
     int gridX, int gridY,
-    int blockX, int blockY)
+    int blockX, int blockY,
+    float *timeTook)
 {
-  dim3 gridSize (gridX, gridY);
-  dim3 blockSize(blockX, blockY);
-  updateKernelBasic<<<gridSize, blockSize>>>(currentGrid, nextGrid, width, height);
-  cudaDeviceSynchronize();
+    dim3 gridSize (gridX, gridY);
+    dim3 blockSize(blockX, blockY);
+
+    cudaEvent_t start, stop;
+    float milliseconds = 0;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);
+    updateKernelBasic<<<gridSize, blockSize>>>(currentGrid, nextGrid, width, height);
+    cudaEventRecord(stop);
+
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    *timeTook = milliseconds;
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 }
 
 extern "C" void launchUpdateKernelShared(
@@ -170,11 +185,26 @@ extern "C" void launchUpdateKernelShared(
     uint8_t* nextGrid,
     int width, int height,
     int gridX, int gridY,
-    int blockX, int blockY)
+    int blockX, int blockY,
+    float *timeTook)
 {
-  dim3 gridSize (gridX, gridY);
-  dim3 blockSize(blockX, blockY);
-  size_t sharedMemSize = (blockX + 1) * (blockY + 1) * sizeof(uint8_t);
-  updateKernelShared<<<gridSize, blockSize, sharedMemSize>>>(currentGrid, nextGrid, width, height);
-  cudaDeviceSynchronize();
+    dim3 gridSize (gridX, gridY);
+    dim3 blockSize(blockX, blockY);
+    size_t sharedMemSize = (blockX + 2) * (blockY + 2) * sizeof(uint8_t);
+
+    cudaEvent_t start, stop;
+    float milliseconds = 0;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);
+    updateKernelShared<<<gridSize, blockSize, sharedMemSize>>>(currentGrid, nextGrid, width, height);
+    cudaEventRecord(stop);
+
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    *timeTook = milliseconds;
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 }

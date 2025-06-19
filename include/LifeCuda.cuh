@@ -16,11 +16,13 @@ extern "C" void launchUpdateKernelBasic(
     uint8_t* nextGrid,
     int width, int height,
     int gridX, int gridY,
-    int blockX, int blockY);
+    int blockX, int blockY,
+    float *timeTook);
 
 extern "C" void launchUpdateKernelShared(
     uint8_t* currentGrid,
     uint8_t* nextGrid,
     int width, int height,
     int gridX, int gridY,
-    int blockX, int blockY);
+    int blockX, int blockY,
+    float *timeTook);
