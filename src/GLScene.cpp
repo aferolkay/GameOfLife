@@ -1,6 +1,7 @@
 #include "GLScene.h"
 #include "unistd.h"
 #include <deque>
+#include <iomanip>
 
 int size = 600;
 
@@ -63,6 +64,14 @@ static void printStatistics()
 
 	std::cout << "Update iterations: " << updateIterations << ", FPS: " << fps << std::endl;
 	std::cout << "Average update time: " << getAverageUpdateTime() << " ms" << std::endl;
+	if (_gpu)
+	{
+		float  calcPercentage =  lifeCuda->getAverageCalculationTime() / getAverageUpdateTime() * 100.0f;
+		float  memPercentage = 100 - calcPercentage;
+
+		std::cout << "Average calculation time (GPU): " << lifeCuda->getAverageCalculationTime() << " ms" << std::endl;
+		std::cout << "Memcpy / Calculation:" <<  std::fixed << std::setprecision(2) << memPercentage << "% / " << calcPercentage << "%" << std::endl;
+	}
 }
 
 static void incrementUpdateIterations()
@@ -604,7 +613,7 @@ void render3d()
 		if (b_rot)
 		{
 			rot_angle++;
-			rot_x = ((int)((rot_x + 1.0f) * 10.0f) % 10)/10.0f;
+			rot_x = ((int)((rot_x + 1.0f) * 10.0f) % 10)/ 10.0f;
 			rot_y = ((int)((rot_y + 1.0f) * 10.0f) % 10) / 10.0f;
 			rot_z = ((int)((rot_z + 1.0f) * 10.0f) % 10) / 10.0f;
 		}

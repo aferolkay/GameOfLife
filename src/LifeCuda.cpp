@@ -94,20 +94,23 @@ void LifeCuda::update()
     int gridHeight = height + 2;
     dim3 blockSize(16, 16);
     dim3 gridSize((gridWidth + blockSize.x - 1) / blockSize.x, (gridHeight + blockSize.y - 1) / blockSize.y);
+    float timeTook = 0.0f;
 
     if (kernelType == KERNEL_BASIC)
     {
-        launchUpdateKernelBasic(d_currentGrid, d_nextGrid, gridWidth, gridHeight, gridSize.x, gridSize.y, blockSize.x, blockSize.y);
+        launchUpdateKernelBasic(d_currentGrid, d_nextGrid, gridWidth, gridHeight, gridSize.x, gridSize.y, blockSize.x, blockSize.y, &timeTook);
     }
     else if (kernelType == KERNEL_SHARED_MEMORY)
     {
-        launchUpdateKernelShared(d_currentGrid, d_nextGrid, gridWidth, gridHeight, gridSize.x, gridSize.y, blockSize.x, blockSize.y);
+        launchUpdateKernelShared(d_currentGrid, d_nextGrid, gridWidth, gridHeight, gridSize.x, gridSize.y, blockSize.x, blockSize.y, &timeTook);
     }
     else
     {
         std::cerr << "Unknown kernel type!" << std::endl;
         return;
     }
+
+    addJustCalculation(timeTook);
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess)
@@ -141,4 +144,6 @@ void LifeCuda::alterKernelType()
         kernelType = KERNEL_SHARED_MEMORY;
         std::cout << "Kernel type changed to SHARED MEMORY." << std::endl;
     }
+
+    resetJustCalculations();
 }
